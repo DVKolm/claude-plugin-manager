@@ -128,9 +128,14 @@ function scanMcpServers(installPath: string): McpServerInfo[] {
     const results: McpServerInfo[] = [];
     for (const [name, config] of Object.entries<any>(servers)) {
       if (name === 'mcpServers') continue;
+      let type: 'stdio' | 'http' | undefined = config.type;
+      if (!type) {
+        if (config.command) type = 'stdio';
+        else if (config.url) type = 'http';
+      }
       results.push({
         name,
-        type: config.type || (config.command ? 'stdio' : config.url ? 'http' : undefined),
+        type,
         command: config.command,
         args: config.args,
         url: config.url,
@@ -177,7 +182,17 @@ function readManifest(installPath: string): PluginManifest {
   return {};
 }
 
+const CACHE_TTL_MS = 5000;
+let cachedPlugins: PluginInfo[] | null = null;
+let cacheTimestamp = 0;
+
+function isCacheFresh(): boolean {
+  return cachedPlugins !== null && (Date.now() - cacheTimestamp) < CACHE_TTL_MS;
+}
+
 export function scanAllPlugins(): PluginInfo[] {
+  if (isCacheFresh()) return cachedPlugins!;
+
   const installedFile = path.join(PLUGINS_DIR, 'installed_plugins.json');
   const installed = readJsonSafe<InstalledPluginsFile>(installedFile);
   if (!installed || !installed.plugins) return [];
@@ -233,12 +248,19 @@ export function scanAllPlugins(): PluginInfo[] {
     plugins.push(pluginInfo);
   }
 
-  return plugins.sort((a, b) => a.name.localeCompare(b.name));
+  const sorted = plugins.sort((a, b) => a.name.localeCompare(b.name));
+  cachedPlugins = sorted;
+  cacheTimestamp = Date.now();
+  return sorted;
+}
+
+export function invalidatePluginCache(): void {
+  cachedPlugins = null;
+  cacheTimestamp = 0;
 }
 
 export function getPluginById(id: string): PluginInfo | null {
-  const all = scanAllPlugins();
-  return all.find(p => p.id === id) || null;
+  return scanAllPlugins().find(p => p.id === id) || null;
 }
 
 export function searchPlugins(

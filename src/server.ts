@@ -10,7 +10,6 @@ import { scanAllPlugins, getPluginById, searchPlugins } from './plugin-scanner';
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 const UI_DIR = path.join(__dirname, 'ui');
-
 const PLUGIN_ID_REGEX = /^[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+$/;
 
 let idleTimer: NodeJS.Timeout;
@@ -35,22 +34,23 @@ function serveStatic(res: http.ServerResponse, filePath: string, contentType: st
   }
 }
 
-function main(): void {
-  // Check if already running
-  const existing = readExistingServerInfo();
-  if (existing && isProcessAlive(existing.pid)) {
-    console.log(JSON.stringify({
-      url: `http://localhost:${existing.port}`,
-      port: existing.port,
-      alreadyRunning: true,
-    }));
-    process.exit(0);
-  }
+function sendForbiddenPage(res: http.ServerResponse): void {
+  res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end([
+    '<!DOCTYPE html><html><head><title>Session Expired</title>',
+    '<style>',
+    'body{font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#F5EEE6;color:#191919;}',
+    '.box{text-align:center;max-width:400px;}',
+    '.code{font-family:monospace;background:#E6DDD1;padding:4px 8px;border-radius:4px;}',
+    '</style></head>',
+    '<body><div class="box">',
+    '<h2>Session Expired</h2>',
+    '<p>Reopen from Claude Code using <span class="code">/plugin-manager:open</span></p>',
+    '</div></body></html>',
+  ].join(''));
+}
 
-  const token = generateToken();
-  const router = new Router();
-
-  // API Routes
+function registerApiRoutes(router: Router): void {
   router.get('/api/health', (_req, res) => {
     sendJson(res, { status: 'ok', uptime: process.uptime() });
   });
@@ -89,8 +89,9 @@ function main(): void {
     }
     sendJson(res, plugin);
   });
+}
 
-  // Static file routes
+function registerStaticRoutes(router: Router): void {
   router.get('/', (_req, res) => {
     serveStatic(res, path.join(UI_DIR, 'index.html'), 'text/html; charset=utf-8');
   });
@@ -100,6 +101,23 @@ function main(): void {
   router.get('/app.js', (_req, res) => {
     serveStatic(res, path.join(UI_DIR, 'app.js'), 'application/javascript; charset=utf-8');
   });
+}
+
+function main(): void {
+  const existing = readExistingServerInfo();
+  if (existing && isProcessAlive(existing.pid)) {
+    console.log(JSON.stringify({
+      url: `http://localhost:${existing.port}`,
+      port: existing.port,
+      alreadyRunning: true,
+    }));
+    process.exit(0);
+  }
+
+  const token = generateToken();
+  const router = new Router();
+  registerApiRoutes(router);
+  registerStaticRoutes(router);
 
   const server = http.createServer(async (req, res) => {
     resetIdleTimer();
@@ -109,11 +127,7 @@ function main(): void {
     if (authResult === 'forbidden') {
       const accept = req.headers.accept || '';
       if (accept.includes('text/html')) {
-        res.writeHead(403, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`<!DOCTYPE html><html><head><title>Session Expired</title>
-          <style>body{font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#F5EEE6;color:#191919;}
-          .box{text-align:center;max-width:400px;}.code{font-family:monospace;background:#E6DDD1;padding:4px 8px;border-radius:4px;}</style></head>
-          <body><div class="box"><h2>Session Expired</h2><p>Reopen from Claude Code using <span class="code">/plugin-manager:open</span></p></div></body></html>`);
+        sendForbiddenPage(res);
       } else {
         sendError(res, 403, 'Forbidden', 'AUTH_REQUIRED');
       }
