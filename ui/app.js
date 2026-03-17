@@ -47,6 +47,7 @@
   var currentPlugins = [];
   var selectedId = null;
   var isTransitioning = false;
+  var restartBannerShown = false;
 
   /* ----------------------------------------
      Utilities
@@ -199,6 +200,59 @@
     }
 
     header.appendChild(renderDetailMeta(plugin));
+
+    // Toggle switch
+    if (plugin.enabled !== undefined) {
+      var toggleWrap = document.createElement('div');
+      toggleWrap.className = 'toggle-wrap';
+
+      var toggleBtn = document.createElement('button');
+      toggleBtn.className = 'toggle-switch' + (plugin.enabled ? ' on' : '');
+      toggleBtn.setAttribute('role', 'switch');
+      toggleBtn.setAttribute('aria-checked', String(plugin.enabled));
+      toggleBtn.setAttribute('aria-label', 'Toggle plugin');
+
+      var toggleThumb = document.createElement('span');
+      toggleThumb.className = 'toggle-thumb';
+      toggleBtn.appendChild(toggleThumb);
+
+      var toggleLabel = document.createElement('span');
+      toggleLabel.className = 'toggle-label';
+      toggleLabel.textContent = plugin.enabled ? 'Enabled' : 'Disabled';
+      toggleWrap.appendChild(toggleBtn);
+      toggleWrap.appendChild(toggleLabel);
+
+      toggleBtn.addEventListener('click', async function() {
+        var newState = !plugin.enabled;
+
+        // Optimistic: update UI immediately
+        toggleBtn.classList.toggle('on', newState);
+        toggleBtn.setAttribute('aria-checked', String(newState));
+        toggleLabel.textContent = newState ? 'Enabled' : 'Disabled';
+
+        try {
+          var res = await fetch('/api/plugins/' + encodeURIComponent(plugin.id) + '/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled: newState })
+          });
+          if (!res.ok) throw new Error('Failed');
+          plugin.enabled = newState;
+          showToast(newState ? 'Plugin enabled' : 'Plugin disabled', 'success');
+          showRestartBanner();
+          // Refresh list to update status dot
+          loadPlugins();
+        } catch (err) {
+          // Revert on failure
+          toggleBtn.classList.toggle('on', !newState);
+          toggleBtn.setAttribute('aria-checked', String(!newState));
+          toggleLabel.textContent = !newState ? 'Enabled' : 'Disabled';
+          showToast('Failed to toggle plugin', 'error');
+        }
+      });
+
+      header.appendChild(toggleWrap);
+    }
 
     if (plugin.error) {
       header.appendChild(renderErrorBanner(plugin.error));
@@ -742,9 +796,90 @@
   });
 
   /* ----------------------------------------
+     Toast Notifications
+     ---------------------------------------- */
+
+  function showToast(message, type) {
+    // type: 'success' | 'error' | 'info'
+    var container = document.getElementById('toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'toast-container';
+      document.body.appendChild(container);
+    }
+
+    var toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.textContent = message;
+
+    var closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close';
+    closeBtn.textContent = '\u00D7';
+    closeBtn.addEventListener('click', function() { dismissToast(toast); });
+    toast.appendChild(closeBtn);
+
+    container.appendChild(toast);
+
+    // Auto-dismiss after 4s
+    setTimeout(function() { dismissToast(toast); }, 4000);
+  }
+
+  function dismissToast(toast) {
+    toast.classList.add('toast-exit');
+    setTimeout(function() { toast.remove(); }, 250);
+  }
+
+  /* ----------------------------------------
+     Restart Banner
+     ---------------------------------------- */
+
+  function showRestartBanner() {
+    if (restartBannerShown) return;
+    restartBannerShown = true;
+
+    var banner = document.createElement('div');
+    banner.className = 'restart-banner';
+    banner.id = 'restart-banner';
+
+    var icon = document.createElement('span');
+    icon.textContent = '\u26A0';
+    banner.appendChild(icon);
+
+    var text = document.createElement('span');
+    text.textContent = 'Changes will apply on next Claude Code session';
+    banner.appendChild(text);
+
+    // Insert at top of detail panel
+    var detail = document.getElementById('detail');
+    detail.insertBefore(banner, detail.firstChild);
+  }
+
+  /* ----------------------------------------
+     SSE Live Updates
+     ---------------------------------------- */
+
+  function connectSSE() {
+    var source = new EventSource('/api/events');
+    source.onmessage = function(e) {
+      try {
+        var data = JSON.parse(e.data);
+        if (data.type === 'settings-changed') {
+          loadPlugins(); // refresh list
+        }
+      } catch (ignore) {}
+    };
+    source.onerror = function() {
+      source.close();
+      // Reconnect after 5s
+      setTimeout(connectSSE, 5000);
+    };
+  }
+
+  /* ----------------------------------------
      Init
      ---------------------------------------- */
 
   loadPlugins();
+  connectSSE();
 
 })();
