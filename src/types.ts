@@ -101,3 +101,14 @@ export interface ApiError {
   error: string;
   code: string;
 }
+
+export interface MarketplacePlugin {
+  name: string;
+  marketplace: string;
+  repo: string;
+  description?: string;
+  author?: { name: string; email?: string };
+  isInstalled: boolean;
+  installedVersion?: string;
+  category: 'internal' | 'external';
+}

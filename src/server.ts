@@ -9,6 +9,7 @@ import {
   readExistingServerInfo, isProcessAlive, handleAuth
 } from './auth';
 import { scanAllPlugins, getPluginById, searchPlugins, invalidatePluginCache } from './plugin-scanner';
+import { scanMarketplace } from './marketplace';
 import { togglePlugin, getSettings, updateSettings } from './plugin-config';
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
@@ -154,6 +155,15 @@ function registerApiRoutes(router: Router): void {
         return sendError(res, 400, (err as TypeError).message, 'VALIDATION_ERROR');
       }
       return sendError(res, 500, 'Failed to update settings', 'INTERNAL_ERROR');
+    }
+  });
+
+  router.get('/api/marketplace', (_req, res) => {
+    try {
+      const plugins = scanMarketplace();
+      sendJson(res, { plugins, total: plugins.length });
+    } catch (err) {
+      sendError(res, 500, 'Failed to scan marketplace', 'MARKETPLACE_ERROR');
     }
   });
 
