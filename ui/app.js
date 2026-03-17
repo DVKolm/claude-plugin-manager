@@ -963,7 +963,7 @@
       if (p.author) {
         var authorEl = document.createElement('div');
         authorEl.className = 'marketplace-card-author';
-        authorEl.textContent = 'by ' + p.author;
+        authorEl.textContent = 'by ' + (typeof p.author === 'object' ? p.author.name : p.author);
         card.appendChild(authorEl);
       }
 
