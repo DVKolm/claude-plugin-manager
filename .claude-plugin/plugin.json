@@ -1,0 +1,8 @@
+{
+  "name": "plugin-manager",
+  "description": "Visual web UI for managing Claude Code plugins",
+  "version": "1.0.0",
+  "author": {
+    "name": "Claude Plugin Manager"
+  }
+}
