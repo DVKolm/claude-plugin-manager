@@ -25,7 +25,7 @@ A visual web UI for managing Claude Code plugins. Browse installed plugins, togg
 Or install manually:
 
 ```bash
-git clone https://github.com/IVA-PC/claude-plugin-manager.git
+git clone https://github.com/DVKolm/claude-plugin-manager.git
 cd claude-plugin-manager
 npm install
 npm run build

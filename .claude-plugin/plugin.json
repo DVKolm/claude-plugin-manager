@@ -3,10 +3,10 @@
   "description": "Visual web UI for managing, toggling, and browsing Claude Code plugins. Opens as a standalone app window with Anthropic-styled interface.",
   "version": "1.0.0",
   "author": {
-    "name": "IVA-PC"
+    "name": "DVKolm"
   },
-  "homepage": "https://github.com/IVA-PC/claude-plugin-manager",
-  "repository": "https://github.com/IVA-PC/claude-plugin-manager",
+  "homepage": "https://github.com/DVKolm/claude-plugin-manager",
+  "repository": "https://github.com/DVKolm/claude-plugin-manager",
   "license": "MIT",
   "keywords": [
     "plugin-manager",
