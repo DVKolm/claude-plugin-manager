@@ -17,12 +17,15 @@ A visual web UI for managing Claude Code plugins. Browse installed plugins, togg
 
 ## Installation
 
-```bash
-# From Claude Code
-/install plugin-manager
+### From the marketplace (after approval)
+
+In Claude Code, run `/plugin` and search for `plugin-manager`, or:
+
+```
+/plugin install plugin-manager
 ```
 
-Or install manually:
+### Manual installation (from source)
 
 ```bash
 git clone https://github.com/DVKolm/claude-plugin-manager.git
@@ -31,10 +34,13 @@ npm install
 npm run build
 ```
 
-Then enable in Claude Code:
+Then start Claude Code with the plugin loaded:
+
 ```bash
-claude --plugin-dir /path/to/claude-plugin-manager
+claude --plugin-dir ./claude-plugin-manager
 ```
+
+Run `/reload-plugins` if you make changes during a session.
 
 ## Usage
 
