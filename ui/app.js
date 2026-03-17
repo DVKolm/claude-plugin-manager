@@ -6,11 +6,13 @@
 (function () {
   'use strict';
 
-  // --- Constants ---
+  /* ----------------------------------------
+     Constants & Static SVGs
+     ---------------------------------------- */
+
   var CHEVRON_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>';
   var DEBOUNCE_MS = 150;
 
-  // --- Section Icons (safe static SVGs) ---
   var SECTION_ICONS = {
     skills: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
     agents: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="3"/></svg>',
@@ -22,7 +24,10 @@
     install: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>'
   };
 
-  // --- DOM References ---
+  /* ----------------------------------------
+     DOM References
+     ---------------------------------------- */
+
   var searchInput = document.getElementById('search');
   var searchClear = document.getElementById('search-clear');
   var searchShortcut = document.querySelector('.search-shortcut');
@@ -35,12 +40,17 @@
   var detailLoading = document.getElementById('detail-loading');
   var footerCount = document.getElementById('footer-count');
 
-  // --- State ---
+  /* ----------------------------------------
+     State
+     ---------------------------------------- */
+
   var currentPlugins = [];
   var selectedId = null;
   var isTransitioning = false;
 
-  // --- Utilities ---
+  /* ----------------------------------------
+     Utilities
+     ---------------------------------------- */
 
   function debounce(fn, ms) {
     var timer;
@@ -52,12 +62,9 @@
     };
   }
 
-  function escapeForDisplay(str) {
-    // Returns safe text - we always use textContent, but this is belt-and-suspenders
-    return String(str);
-  }
-
-  // --- API ---
+  /* ----------------------------------------
+     API
+     ---------------------------------------- */
 
   async function fetchPlugins(query, filter, source) {
     var params = new URLSearchParams();
@@ -72,13 +79,14 @@
   }
 
   async function fetchPluginDetail(id) {
-    var encoded = encodeURIComponent(id);
-    var res = await fetch('/api/plugins/' + encoded);
+    var res = await fetch('/api/plugins/' + encodeURIComponent(id));
     if (!res.ok) throw new Error('Failed to fetch plugin detail');
     return res.json();
   }
 
-  // --- Rendering: Plugin List ---
+  /* ----------------------------------------
+     Rendering: Plugin List
+     ---------------------------------------- */
 
   function renderPluginList(plugins) {
     pluginList.textContent = '';
@@ -110,7 +118,6 @@
       li.appendChild(dot);
       li.appendChild(info);
 
-      // Mini count badges
       var totalFeatures = (p.skillCount || 0) + (p.agentCount || 0) + (p.commandCount || 0) +
                           (p.hookCount || 0) + (p.mcpServerCount || 0) + (p.modeCount || 0);
       if (totalFeatures > 0) {
@@ -131,7 +138,9 @@
     });
   }
 
-  // --- Rendering: Detail States ---
+  /* ----------------------------------------
+     Rendering: Detail States
+     ---------------------------------------- */
 
   function showDetailState(state) {
     detailEmpty.hidden = state !== 'empty';
@@ -139,17 +148,23 @@
     detailLoading.hidden = state !== 'loading';
   }
 
-  // --- Rendering: Detail Content ---
+  /* ----------------------------------------
+     Rendering: Detail Content
+     ---------------------------------------- */
 
   function renderPluginDetail(plugin) {
     detailContent.textContent = '';
     detailContent.classList.remove('fade-in');
-
-    // Force reflow then animate in
     void detailContent.offsetWidth;
     detailContent.classList.add('fade-in');
 
-    // --- Header ---
+    detailContent.appendChild(renderDetailHeader(plugin));
+    renderDetailSections(plugin);
+
+    showDetailState('content');
+  }
+
+  function renderDetailHeader(plugin) {
     var header = document.createElement('div');
     header.className = 'detail-header';
 
@@ -167,9 +182,8 @@
       titleRow.appendChild(vPill);
     }
 
-    // Status badge
-    var statusBadge = document.createElement('span');
     if (plugin.enabled !== undefined) {
+      var statusBadge = document.createElement('span');
       statusBadge.className = 'badge ' + (plugin.enabled ? 'enabled-badge' : 'disabled-badge');
       statusBadge.textContent = plugin.enabled ? 'Enabled' : 'Disabled';
       titleRow.appendChild(statusBadge);
@@ -177,7 +191,6 @@
 
     header.appendChild(titleRow);
 
-    // Description
     if (plugin.description) {
       var desc = document.createElement('p');
       desc.className = 'detail-description';
@@ -185,7 +198,21 @@
       header.appendChild(desc);
     }
 
-    // Meta line
+    header.appendChild(renderDetailMeta(plugin));
+
+    if (plugin.error) {
+      header.appendChild(renderErrorBanner(plugin.error));
+    }
+
+    var statChips = renderStatChips(plugin);
+    if (statChips) {
+      header.appendChild(statChips);
+    }
+
+    return header;
+  }
+
+  function renderDetailMeta(plugin) {
     var meta = document.createElement('div');
     meta.className = 'detail-meta';
 
@@ -193,9 +220,7 @@
       var bySpan = document.createElement('span');
       bySpan.textContent = 'by ' + plugin.author.name;
       meta.appendChild(bySpan);
-    }
 
-    if (meta.childNodes.length > 0) {
       var sep = document.createElement('span');
       sep.className = 'meta-separator';
       sep.textContent = '\u25CF';
@@ -207,117 +232,113 @@
     sourceBadge.textContent = plugin.isOfficial ? 'Official' : 'Community';
     meta.appendChild(sourceBadge);
 
-    header.appendChild(meta);
+    return meta;
+  }
 
-    // Error banner
-    if (plugin.error) {
-      var errBanner = document.createElement('div');
-      errBanner.className = 'error-banner';
+  function renderErrorBanner(errorText) {
+    var banner = document.createElement('div');
+    banner.className = 'error-banner';
 
-      var errIcon = document.createElement('span');
-      errIcon.className = 'error-banner-icon';
-      errIcon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
-      errBanner.appendChild(errIcon);
+    var icon = document.createElement('span');
+    icon.className = 'error-banner-icon';
+    icon.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>';
+    banner.appendChild(icon);
 
-      var errText = document.createElement('span');
-      errText.className = 'error-banner-text';
-      errText.textContent = plugin.error;
-      errBanner.appendChild(errText);
+    var text = document.createElement('span');
+    text.className = 'error-banner-text';
+    text.textContent = errorText;
+    banner.appendChild(text);
 
-      header.appendChild(errBanner);
-    }
+    return banner;
+  }
 
-    // Stat chips
-    var stats = [];
-    if (plugin.skills && plugin.skills.length) stats.push({ label: 'Skills', count: plugin.skills.length });
-    if (plugin.agents && plugin.agents.length) stats.push({ label: 'Agents', count: plugin.agents.length });
-    if (plugin.commands && plugin.commands.length) stats.push({ label: 'Commands', count: plugin.commands.length });
-    if (plugin.hooks && plugin.hooks.length) stats.push({ label: 'Hooks', count: plugin.hooks.length });
-    if (plugin.mcpServers && plugin.mcpServers.length) stats.push({ label: 'MCP Servers', count: plugin.mcpServers.length });
-    if (plugin.modes && plugin.modes.length) stats.push({ label: 'Modes', count: plugin.modes.length });
+  function renderStatChips(plugin) {
+    var statDefs = [
+      { key: 'skills', label: 'Skills' },
+      { key: 'agents', label: 'Agents' },
+      { key: 'commands', label: 'Commands' },
+      { key: 'hooks', label: 'Hooks' },
+      { key: 'mcpServers', label: 'MCP Servers' },
+      { key: 'modes', label: 'Modes' }
+    ];
 
-    if (stats.length > 0) {
-      var chipsWrap = document.createElement('div');
-      chipsWrap.className = 'stat-chips';
-      stats.forEach(function (s) {
-        var chip = document.createElement('span');
-        chip.className = 'stat-chip';
-        var countEl = document.createElement('span');
-        countEl.className = 'stat-count';
-        countEl.textContent = s.count;
-        var labelEl = document.createElement('span');
-        labelEl.textContent = s.label;
-        chip.appendChild(countEl);
-        chip.appendChild(labelEl);
-        chipsWrap.appendChild(chip);
-      });
-      header.appendChild(chipsWrap);
-    }
+    var stats = statDefs.filter(function (def) {
+      return plugin[def.key] && plugin[def.key].length > 0;
+    });
 
-    detailContent.appendChild(header);
+    if (stats.length === 0) return null;
 
-    // --- Sections ---
+    var chipsWrap = document.createElement('div');
+    chipsWrap.className = 'stat-chips';
+    stats.forEach(function (s) {
+      var chip = document.createElement('span');
+      chip.className = 'stat-chip';
+      var countEl = document.createElement('span');
+      countEl.className = 'stat-count';
+      countEl.textContent = plugin[s.key].length;
+      var labelEl = document.createElement('span');
+      labelEl.textContent = s.label;
+      chip.appendChild(countEl);
+      chip.appendChild(labelEl);
+      chipsWrap.appendChild(chip);
+    });
+    return chipsWrap;
+  }
+
+  /* ----------------------------------------
+     Rendering: Detail Sections
+     ---------------------------------------- */
+
+  function renderDetailSections(plugin) {
     var firstExpanded = false;
 
-    // Skills (card grid)
-    if (plugin.skills && plugin.skills.length > 0) {
-      var sec = renderCardSection('Skills', SECTION_ICONS.skills, plugin.skills, function (item) {
-        return createItemCard(item.name, item.description);
-      });
-      if (!firstExpanded) { autoExpandSection(sec); firstExpanded = true; }
-      detailContent.appendChild(sec);
+    function appendSection(sectionEl) {
+      if (!firstExpanded) {
+        autoExpandSection(sectionEl);
+        firstExpanded = true;
+      }
+      detailContent.appendChild(sectionEl);
     }
 
-    // Agents (card grid)
-    if (plugin.agents && plugin.agents.length > 0) {
-      var sec2 = renderCardSection('Agents', SECTION_ICONS.agents, plugin.agents, function (item) {
-        return createItemCard(item.name, item.description);
-      });
-      if (!firstExpanded) { autoExpandSection(sec2); firstExpanded = true; }
-      detailContent.appendChild(sec2);
-    }
+    // Card sections (Skills, Agents, Commands)
+    var cardSections = [
+      { key: 'skills', title: 'Skills', icon: SECTION_ICONS.skills },
+      { key: 'agents', title: 'Agents', icon: SECTION_ICONS.agents },
+      { key: 'commands', title: 'Commands', icon: SECTION_ICONS.commands }
+    ];
 
-    // Commands (card grid)
-    if (plugin.commands && plugin.commands.length > 0) {
-      var sec3 = renderCardSection('Commands', SECTION_ICONS.commands, plugin.commands, function (item) {
-        return createItemCard(item.name, item.description);
-      });
-      if (!firstExpanded) { autoExpandSection(sec3); firstExpanded = true; }
-      detailContent.appendChild(sec3);
-    }
+    cardSections.forEach(function (def) {
+      var items = plugin[def.key];
+      if (items && items.length > 0) {
+        appendSection(renderCollapsibleSection(def.title, def.icon, items, 'card', function (item) {
+          return createItemCard(item.name, item.description);
+        }));
+      }
+    });
 
-    // Hooks (compact list)
+    // Compact sections (Hooks, MCP Servers, Modes)
     if (plugin.hooks && plugin.hooks.length > 0) {
-      var sec4 = renderCompactSection('Hooks', SECTION_ICONS.hooks, plugin.hooks, function (item, idx) {
+      appendSection(renderCollapsibleSection('Hooks', SECTION_ICONS.hooks, plugin.hooks, 'compact', function (item, idx) {
         return createCompactRow(item.event, item.command || '', idx);
-      });
-      if (!firstExpanded) { autoExpandSection(sec4); firstExpanded = true; }
-      detailContent.appendChild(sec4);
+      }));
     }
 
-    // MCP Servers (compact list)
     if (plugin.mcpServers && plugin.mcpServers.length > 0) {
-      var sec5 = renderCompactSection('MCP Servers', SECTION_ICONS.mcp, plugin.mcpServers, function (item, idx) {
+      appendSection(renderCollapsibleSection('MCP Servers', SECTION_ICONS.mcp, plugin.mcpServers, 'compact', function (item, idx) {
         var val = (item.type ? item.type + ' — ' : '') + (item.command || item.url || '');
         return createCompactRow(item.name, val, idx);
-      });
-      if (!firstExpanded) { autoExpandSection(sec5); firstExpanded = true; }
-      detailContent.appendChild(sec5);
+      }));
     }
 
-    // Modes (compact list)
     if (plugin.modes && plugin.modes.length > 0) {
-      var sec6 = renderCompactSection('Modes', SECTION_ICONS.modes, plugin.modes, function (item, idx) {
+      appendSection(renderCollapsibleSection('Modes', SECTION_ICONS.modes, plugin.modes, 'compact', function (item, idx) {
         return createCompactRow(item.name, '', idx);
-      });
-      if (!firstExpanded) { autoExpandSection(sec6); firstExpanded = true; }
-      detailContent.appendChild(sec6);
+      }));
     }
 
     // CLAUDE.md
     if (plugin.hasClaudeMd) {
-      var sec7 = renderClaudeMdSection(plugin.claudeMdPreview || 'CLAUDE.md present');
-      detailContent.appendChild(sec7);
+      detailContent.appendChild(renderClaudeMdSection(plugin.claudeMdPreview || 'CLAUDE.md present'));
     }
 
     // Installation info
@@ -330,17 +351,16 @@
       if (inst.installPath) infoItems.push({ label: 'Path', value: inst.installPath });
 
       if (infoItems.length > 0) {
-        var sec8 = renderInstallSection(infoItems);
-        detailContent.appendChild(sec8);
+        detailContent.appendChild(renderInstallSection(infoItems));
       }
     }
-
-    showDetailState('content');
   }
 
-  // --- Card Section (Skills, Agents, Commands) ---
+  /* ----------------------------------------
+     Rendering: Collapsible Section (unified)
+     ---------------------------------------- */
 
-  function renderCardSection(title, iconSvg, items, renderCard) {
+  function renderCollapsibleSection(title, iconSvg, items, layout, renderItem) {
     var wrapper = document.createElement('div');
     wrapper.className = 'collapsible-section';
 
@@ -348,47 +368,27 @@
     var contentEl = document.createElement('div');
     contentEl.className = 'section-content';
 
-    var grid = document.createElement('div');
-    grid.className = 'card-grid';
+    var container = document.createElement('div');
+    container.className = layout === 'card' ? 'card-grid' : 'compact-list';
 
     items.forEach(function (item, idx) {
-      var card = renderCard(item);
-      card.style.animationDelay = (idx * 30) + 'ms';
-      grid.appendChild(card);
+      var el = renderItem(item, idx);
+      if (layout === 'card') {
+        el.style.animationDelay = (idx * 30) + 'ms';
+      }
+      container.appendChild(el);
     });
 
-    contentEl.appendChild(grid);
+    contentEl.appendChild(container);
     setupToggle(headerEl, contentEl);
     wrapper.appendChild(headerEl);
     wrapper.appendChild(contentEl);
     return wrapper;
   }
 
-  // --- Compact Section (Hooks, MCP, Modes) ---
-
-  function renderCompactSection(title, iconSvg, items, renderRow) {
-    var wrapper = document.createElement('div');
-    wrapper.className = 'collapsible-section';
-
-    var headerEl = createSectionHeader(title, iconSvg, items.length);
-    var contentEl = document.createElement('div');
-    contentEl.className = 'section-content';
-
-    var list = document.createElement('div');
-    list.className = 'compact-list';
-
-    items.forEach(function (item, idx) {
-      list.appendChild(renderRow(item, idx));
-    });
-
-    contentEl.appendChild(list);
-    setupToggle(headerEl, contentEl);
-    wrapper.appendChild(headerEl);
-    wrapper.appendChild(contentEl);
-    return wrapper;
-  }
-
-  // --- CLAUDE.md Section ---
+  /* ----------------------------------------
+     Rendering: CLAUDE.md Section
+     ---------------------------------------- */
 
   function renderClaudeMdSection(preview) {
     var wrapper = document.createElement('div');
@@ -413,7 +413,9 @@
     return wrapper;
   }
 
-  // --- Installation Section ---
+  /* ----------------------------------------
+     Rendering: Installation Section
+     ---------------------------------------- */
 
   function renderInstallSection(items) {
     var wrapper = document.createElement('div');
@@ -434,7 +436,7 @@
       var value = document.createElement('span');
       value.className = 'install-value';
       value.textContent = item.value;
-      value.title = item.value; // Show full value on hover
+      value.title = item.value;
 
       grid.appendChild(label);
       grid.appendChild(value);
@@ -447,7 +449,9 @@
     return wrapper;
   }
 
-  // --- Helpers ---
+  /* ----------------------------------------
+     Section Helpers
+     ---------------------------------------- */
 
   function createSectionHeader(title, iconSvg, count) {
     var headerEl = document.createElement('div');
@@ -482,16 +486,10 @@
 
   function setupToggle(headerEl, contentEl) {
     function toggle() {
-      var isExpanded = headerEl.classList.contains('expanded');
-      if (isExpanded) {
-        headerEl.classList.remove('expanded');
-        contentEl.classList.remove('expanded');
-        headerEl.setAttribute('aria-expanded', 'false');
-      } else {
-        headerEl.classList.add('expanded');
-        contentEl.classList.add('expanded');
-        headerEl.setAttribute('aria-expanded', 'true');
-      }
+      var expanding = !headerEl.classList.contains('expanded');
+      headerEl.classList.toggle('expanded');
+      contentEl.classList.toggle('expanded');
+      headerEl.setAttribute('aria-expanded', String(expanding));
     }
 
     headerEl.addEventListener('click', toggle);
@@ -513,6 +511,10 @@
     }
   }
 
+  /* ----------------------------------------
+     Card & Row Helpers
+     ---------------------------------------- */
+
   function createItemCard(name, description) {
     var card = document.createElement('div');
     card.className = 'item-card';
@@ -528,7 +530,6 @@
       descEl.textContent = description;
       card.appendChild(descEl);
 
-      // Check if text is likely to be clamped (rough heuristic: > 80 chars)
       if (description.length > 80) {
         card.classList.add('is-expandable');
 
@@ -568,22 +569,22 @@
     return row;
   }
 
-  // --- Selection ---
+  /* ----------------------------------------
+     Plugin Selection
+     ---------------------------------------- */
 
   function selectPlugin(id) {
     if (isTransitioning && id === selectedId) return;
 
     selectedId = id;
 
-    // Update list selection
     var items = pluginList.querySelectorAll('li');
     items.forEach(function (li) {
       var isSelected = li.dataset.id === id;
       li.classList.toggle('selected', isSelected);
-      li.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      li.setAttribute('aria-selected', String(isSelected));
     });
 
-    // Fade out current content, then show loading
     if (!detailContent.hidden) {
       isTransitioning = true;
       detailContent.classList.add('fade-out');
@@ -612,14 +613,18 @@
     });
   }
 
-  // --- Counts ---
+  /* ----------------------------------------
+     Counts
+     ---------------------------------------- */
 
   function updateCounts(total, filtered) {
     pluginCount.textContent = filtered + ' of ' + total + ' plugins';
     footerCount.textContent = '\u2022 ' + total + ' plugins installed';
   }
 
-  // --- Load & Refresh ---
+  /* ----------------------------------------
+     Load & Refresh
+     ---------------------------------------- */
 
   async function loadPlugins() {
     var query = searchInput.value.trim();
@@ -632,23 +637,26 @@
       renderPluginList(currentPlugins);
       updateCounts(data.total, data.filtered);
 
-      var ids = currentPlugins.map(function (p) { return p.id; });
-      if (currentPlugins.length > 0) {
-        if (!selectedId || ids.indexOf(selectedId) === -1) {
-          selectPlugin(currentPlugins[0].id);
-        } else {
-          selectPlugin(selectedId);
-        }
-      } else {
+      if (currentPlugins.length === 0) {
         selectedId = null;
         showDetailState('empty');
+        return;
+      }
+
+      var ids = currentPlugins.map(function (p) { return p.id; });
+      if (!selectedId || ids.indexOf(selectedId) === -1) {
+        selectPlugin(currentPlugins[0].id);
+      } else {
+        selectPlugin(selectedId);
       }
     } catch (err) {
       console.error('Failed to load plugins:', err);
     }
   }
 
-  // --- Search ---
+  /* ----------------------------------------
+     Search
+     ---------------------------------------- */
 
   var debouncedLoad = debounce(loadPlugins, DEBOUNCE_MS);
 
@@ -668,7 +676,10 @@
     loadPlugins();
   });
 
-  // Global "/" shortcut to focus search
+  /* ----------------------------------------
+     Keyboard Shortcuts
+     ---------------------------------------- */
+
   document.addEventListener('keydown', function (e) {
     if (e.key === '/' && document.activeElement !== searchInput &&
         !e.ctrlKey && !e.metaKey && !e.altKey) {
@@ -676,41 +687,45 @@
       searchInput.focus();
       searchInput.select();
     }
-    // Escape to blur search
     if (e.key === 'Escape' && document.activeElement === searchInput) {
       searchInput.blur();
     }
   });
 
-  // --- Filters ---
+  /* ----------------------------------------
+     Filters
+     ---------------------------------------- */
 
   filterSource.addEventListener('change', loadPlugins);
   filterStatus.addEventListener('change', loadPlugins);
 
-  // --- Keyboard Navigation ---
+  /* ----------------------------------------
+     Keyboard Navigation
+     ---------------------------------------- */
 
   pluginList.addEventListener('keydown', function (e) {
     var items = Array.from(pluginList.querySelectorAll('li'));
     if (items.length === 0) return;
 
     var currentIdx = items.findIndex(function (li) { return li.classList.contains('selected'); });
+    var nextIdx;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      var nextIdx = currentIdx < items.length - 1 ? currentIdx + 1 : 0;
-      selectPlugin(items[nextIdx].dataset.id);
-      items[nextIdx].scrollIntoView({ block: 'nearest' });
+      nextIdx = currentIdx < items.length - 1 ? currentIdx + 1 : 0;
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      var prevIdx = currentIdx > 0 ? currentIdx - 1 : items.length - 1;
-      selectPlugin(items[prevIdx].dataset.id);
-      items[prevIdx].scrollIntoView({ block: 'nearest' });
+      nextIdx = currentIdx > 0 ? currentIdx - 1 : items.length - 1;
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      if (currentIdx >= 0) {
-        selectPlugin(items[currentIdx].dataset.id);
-      }
+      if (currentIdx >= 0) selectPlugin(items[currentIdx].dataset.id);
+      return;
+    } else {
+      return;
     }
+
+    selectPlugin(items[nextIdx].dataset.id);
+    items[nextIdx].scrollIntoView({ block: 'nearest' });
   });
 
   searchInput.addEventListener('keydown', function (e) {
@@ -726,7 +741,10 @@
     }
   });
 
-  // --- Init ---
+  /* ----------------------------------------
+     Init
+     ---------------------------------------- */
+
   loadPlugins();
 
 })();

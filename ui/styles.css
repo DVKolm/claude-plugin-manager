@@ -1056,8 +1056,6 @@ body {
 }
 
 /* --- Responsive --- */
-.back-btn { display: none; }
-
 @media (max-width: 900px) {
   #sidebar {
     position: absolute;
@@ -1071,7 +1069,6 @@ body {
     z-index: 40;
     background: var(--bg);
   }
-  .back-btn { display: block; }
   .skeleton-cards {
     grid-template-columns: 1fr;
   }
