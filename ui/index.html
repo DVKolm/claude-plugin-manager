@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugin Manager — Claude Code</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23D97757'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-family='system-ui'>P</text></svg>">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header id="header">
+    <div class="header-left">
+      <span class="header-logo">◉</span>
+      <span class="header-title">Claude Plugin Manager</span>
+    </div>
+    <div class="header-right">
+      <button id="settings-btn" class="header-btn" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="app">
+    <aside id="sidebar">
+      <div class="sidebar-controls">
+        <div class="search-wrapper">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="search" placeholder="Search plugins..." aria-label="Search plugins">
+          <button id="search-clear" class="search-clear" hidden aria-label="Clear search">×</button>
+        </div>
+        <div class="filters">
+          <select id="filter-source" aria-label="Filter by source">
+            <option value="">All Sources</option>
+            <option value="official">Official</option>
+            <option value="community">Community</option>
+          </select>
+          <select id="filter-status" aria-label="Filter by status">
+            <option value="">All Status</option>
+            <option value="enabled">Enabled</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+      </div>
+      <div id="plugin-count" class="plugin-count" aria-live="polite"></div>
+      <ul id="plugin-list" role="listbox" aria-label="Plugin list">
+        <!-- Populated by JS -->
+      </ul>
+    </aside>
+
+    <section id="detail" aria-label="Plugin details">
+      <div id="detail-empty" class="empty-state">
+        <p>Select a plugin to view details</p>
+      </div>
+      <div id="detail-content" hidden>
+        <!-- Populated by JS -->
+      </div>
+      <div id="detail-loading" class="loading-skeleton" hidden>
+        <div class="skeleton-line wide"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line narrow"></div>
+        <div class="skeleton-section"></div>
+        <div class="skeleton-section"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer">
+    <span>Plugin Manager v1.0.0</span>
+    <span id="footer-count"></span>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
