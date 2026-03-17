@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plugin Manager — Claude Code</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%23D97757'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='18' font-family='system-ui'>P</text></svg>">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header id="header">
+    <div class="header-left">
+      <span class="header-logo" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="14" fill="#C8613C" opacity="0.9"/>
+          <circle cx="16" cy="16" r="8" fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.5"/>
+          <circle cx="16" cy="16" r="3" fill="rgba(255,255,255,0.9)"/>
+        </svg>
+      </span>
+      <span class="header-title">Claude Plugin Manager</span>
+    </div>
+    <div class="header-right">
+      <button id="theme-toggle" class="header-btn" aria-label="Toggle theme">
+        <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+      <button id="settings-btn" class="header-btn" aria-label="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="app">
+    <aside id="sidebar">
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-view="installed">Installed</button>
+        <button class="sidebar-tab" data-view="marketplace">Marketplace</button>
+      </div>
+      <div class="sidebar-controls">
+        <div class="search-wrapper">
+          <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="search" placeholder="Search plugins..." aria-label="Search plugins">
+          <button id="search-clear" class="search-clear" hidden aria-label="Clear search">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+          <kbd class="search-shortcut" aria-hidden="true">/</kbd>
+        </div>
+        <div class="filters">
+          <select id="filter-source" aria-label="Filter by source">
+            <option value="">All Sources</option>
+            <option value="official">Official</option>
+            <option value="community">Community</option>
+          </select>
+          <select id="filter-status" aria-label="Filter by status">
+            <option value="">All Status</option>
+            <option value="enabled">Enabled</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+      </div>
+      <div id="plugin-count" class="plugin-count" aria-live="polite"></div>
+      <ul id="plugin-list" role="listbox" aria-label="Plugin list" tabindex="0">
+        <!-- Populated by JS -->
+      </ul>
+    </aside>
+
+    <section id="detail" aria-label="Plugin details">
+      <div id="marketplace-view" hidden>
+        <div class="marketplace-header">
+          <h2>Marketplace</h2>
+          <span id="marketplace-count" class="marketplace-count"></span>
+        </div>
+        <div class="marketplace-toolbar">
+          <div class="marketplace-search-wrapper">
+            <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input type="text" id="marketplace-search" class="marketplace-search" placeholder="Search marketplace..." aria-label="Search marketplace">
+          </div>
+          <div class="marketplace-filter-pills">
+            <button class="marketplace-filter-pill active" data-filter="all">All</button>
+            <button class="marketplace-filter-pill" data-filter="available">Available</button>
+            <button class="marketplace-filter-pill" data-filter="installed">Installed</button>
+          </div>
+        </div>
+        <div id="marketplace-grid" class="marketplace-grid"></div>
+      </div>
+      <div id="detail-empty" class="empty-state">
+        <div class="empty-icon" aria-hidden="true">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <p>Select a plugin to view details</p>
+        <span class="empty-hint">Browse or search from the sidebar</span>
+      </div>
+      <div id="detail-content" hidden>
+        <!-- Populated by JS -->
+      </div>
+      <div id="detail-loading" class="loading-skeleton" hidden>
+        <div class="skeleton-line wide"></div>
+        <div class="skeleton-line medium"></div>
+        <div class="skeleton-line narrow"></div>
+        <div class="skeleton-spacer"></div>
+        <div class="skeleton-cards">
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer">
+    <span>Plugin Manager v1.0.0</span>
+    <span id="footer-count"></span>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
