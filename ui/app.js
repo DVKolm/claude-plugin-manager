@@ -268,6 +268,19 @@
       ));
     }
 
+    // Auto-expand first non-empty collapsible section
+    var firstSection = detailContent.querySelector('.collapsible-section');
+    if (firstSection && firstSection.__wrapper) {
+      firstSection.__wrapper.autoExpand();
+    }
+    // Try simpler approach: expand first section-header
+    var firstHeader = detailContent.querySelector('.section-header');
+    var firstContentEl = detailContent.querySelector('.section-content');
+    if (firstHeader && firstContentEl) {
+      firstHeader.classList.add('expanded');
+      firstContentEl.classList.add('expanded');
+    }
+
     // Installation info
     if (plugin.installations && plugin.installations.length > 0) {
       var inst = plugin.installations[0];
@@ -362,6 +375,10 @@
 
     wrapper.appendChild(headerEl);
     wrapper.appendChild(contentEl);
+    wrapper.autoExpand = function () {
+      headerEl.classList.add('expanded');
+      contentEl.classList.add('expanded');
+    };
     return wrapper;
   }
 

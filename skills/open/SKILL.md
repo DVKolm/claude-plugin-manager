@@ -25,7 +25,10 @@ node "${CLAUDE_PLUGIN_ROOT}/dist/server.js" &
 
 Read the first line of output — it's a JSON object with `url` and `port`.
 
-4. **Tell the user** to open the URL in their browser. The URL includes a one-time auth token.
+4. **Open as app window** (no browser chrome — looks like a native widget):
+- **Windows:** `start msedge --app="<url>"` (Edge app mode, no address bar or tabs)
+- **macOS:** `open -a "Google Chrome" --args --app="<url>"`
+- **Fallback:** Tell the user to open the URL in their browser manually.
 
 ## Notes
 - The server auto-exits after 30 minutes of inactivity
