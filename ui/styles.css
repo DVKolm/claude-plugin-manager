@@ -379,12 +379,13 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   border-left: 3px solid transparent;
   margin-bottom: 2px;
   transition: all var(--transition);
   position: relative;
   user-select: none;
+  min-height: 42px;
 }
 
 #plugin-list li:hover {
@@ -862,7 +863,7 @@ body {
   gap: 12px;
   padding: 8px 12px;
   background: var(--surface);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   transition: all var(--transition);
   opacity: 0;
   transform: translateY(4px);
@@ -1259,6 +1260,9 @@ body {
   border: 1px solid var(--card-border);
   border-radius: var(--radius-md);
   padding: 16px 18px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
   transition: all var(--transition);
   cursor: default;
   opacity: 0;
@@ -1268,8 +1272,8 @@ body {
 
 .marketplace-card:hover {
   border-color: var(--card-hover-border);
-  box-shadow: var(--card-hover-shadow);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(27,23,18,0.12), 0 2px 8px rgba(27,23,18,0.06), 0 0 0 1px var(--card-hover-border);
+  transform: translateY(-3px);
 }
 
 .marketplace-card-name {
@@ -1303,6 +1307,8 @@ body {
   justify-content: space-between;
   font-size: 0.6875rem;
   color: var(--text-tertiary);
+  margin-top: auto;
+  padding-top: 8px;
 }
 
 .marketplace-status {
@@ -1318,31 +1324,134 @@ body {
 .marketplace-category {
   display: inline-flex;
   align-items: center;
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: 999px;
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 0.5625rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
 }
 
 .marketplace-category.internal {
-  background: linear-gradient(135deg, var(--primary-subtle), var(--primary-glow));
+  background: var(--primary-subtle);
   color: var(--primary);
-  border: 1px solid rgba(200,97,60,0.12);
+  border: 1px solid rgba(200,97,60,0.08);
 }
 
 .marketplace-category.external {
-  background: var(--surface-active);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
+  background: var(--surface-hover);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
 }
 
-.marketplace-source {
-  font-size: 0.625rem;
+/* --- Marketplace Search & Filter Bar --- */
+.marketplace-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 36px 0;
+}
+
+.marketplace-search-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 360px;
+}
+
+.marketplace-search-wrapper .search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--text-tertiary);
-  margin-top: 8px;
-  opacity: 0.7;
+  opacity: 0.6;
+  pointer-events: none;
+  transition: all var(--transition);
+}
+
+.marketplace-search-wrapper:focus-within .search-icon {
+  opacity: 1;
+  color: var(--primary);
+}
+
+.marketplace-search {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  outline: none;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+
+.marketplace-search::placeholder {
+  color: var(--text-tertiary);
+}
+
+.marketplace-search:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus-ring), var(--shadow-sm);
+}
+
+.marketplace-filter-pills {
+  display: flex;
+  gap: 4px;
+}
+
+.marketplace-filter-pill {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.marketplace-filter-pill:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.marketplace-filter-pill.active {
+  background: var(--primary-subtle);
+  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* --- View Transitions --- */
+.view-fade-enter {
+  animation: viewFadeIn 200ms ease-out both;
+}
+
+.view-fade-exit {
+  animation: viewFadeOut 150ms ease-in both;
+}
+
+@keyframes viewFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes viewFadeOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-4px); }
+}
+
+/* --- Dark mode marketplace card hover shadow --- */
+@media (prefers-color-scheme: dark) {
+  .marketplace-card:hover {
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 2px 8px rgba(0,0,0,0.2), 0 0 0 1px var(--card-hover-border);
+  }
 }
 
 /* --- Page Load Animation --- */

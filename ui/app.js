@@ -680,7 +680,16 @@
 
   function updateCounts(total, filtered) {
     pluginCount.textContent = filtered + ' of ' + total + ' plugins';
-    footerCount.textContent = '\u2022 ' + total + ' plugins installed';
+    installedTotal = total;
+    updateFooter();
+  }
+
+  function updateFooter() {
+    var parts = installedTotal + ' installed';
+    if (marketplaceTotal > 0) {
+      parts += ' \u2022 ' + marketplaceTotal + ' in marketplace';
+    }
+    footerCount.textContent = '\u2022 ' + parts;
   }
 
   /* ----------------------------------------
@@ -889,34 +898,79 @@
   var marketplaceView = document.getElementById('marketplace-view');
   var marketplaceGrid = document.getElementById('marketplace-grid');
   var marketplaceCountEl = document.getElementById('marketplace-count');
+  var marketplaceSearchInput = document.getElementById('marketplace-search');
+  var marketplaceFilterPills = document.querySelectorAll('.marketplace-filter-pill');
   var sidebarControls = document.querySelector('.sidebar-controls');
   var sidebarTabs = document.querySelectorAll('.sidebar-tab');
 
-  function switchView(view) {
-    currentView = view;
+  var allMarketplacePlugins = [];
+  var marketplaceSearchQuery = '';
+  var marketplaceFilterValue = 'all';
+  var installedTotal = 0;
+  var marketplaceTotal = 0;
 
-    sidebarTabs.forEach(function (tab) {
-      tab.classList.toggle('active', tab.dataset.view === view);
+  function switchView(view) {
+    if (currentView === view) return;
+
+    var outgoing = currentView === 'installed'
+      ? [sidebarControls, pluginCount, pluginList, detailContent, detailEmpty]
+      : [marketplaceView];
+
+    // Fade out current content
+    outgoing.forEach(function (el) {
+      if (!el.hidden) el.classList.add('view-fade-exit');
     });
 
-    if (view === 'installed') {
-      sidebarControls.hidden = false;
-      pluginCount.hidden = false;
-      pluginList.hidden = false;
-      marketplaceView.hidden = true;
-      detailEmpty.hidden = !detailContent.hidden;
-      detailContent.hidden = !selectedId;
-      detailLoading.hidden = true;
-    } else {
-      sidebarControls.hidden = true;
-      pluginCount.hidden = true;
-      pluginList.hidden = true;
-      detailEmpty.hidden = true;
-      detailContent.hidden = true;
-      detailLoading.hidden = true;
-      marketplaceView.hidden = false;
-      loadMarketplace();
-    }
+    setTimeout(function () {
+      // Clean up outgoing
+      outgoing.forEach(function (el) {
+        el.classList.remove('view-fade-exit');
+      });
+
+      currentView = view;
+      sidebarTabs.forEach(function (tab) {
+        tab.classList.toggle('active', tab.dataset.view === view);
+      });
+
+      if (view === 'installed') {
+        sidebarControls.hidden = false;
+        pluginCount.hidden = false;
+        pluginList.hidden = false;
+        marketplaceView.hidden = true;
+        detailLoading.hidden = true;
+        // Restore previous selection
+        if (selectedId) {
+          detailEmpty.hidden = true;
+          detailContent.hidden = false;
+        } else {
+          detailEmpty.hidden = false;
+          detailContent.hidden = true;
+        }
+        // Fade in
+        sidebarControls.classList.add('view-fade-enter');
+        pluginCount.classList.add('view-fade-enter');
+        pluginList.classList.add('view-fade-enter');
+        if (!detailContent.hidden) detailContent.classList.add('view-fade-enter');
+        if (!detailEmpty.hidden) detailEmpty.classList.add('view-fade-enter');
+      } else {
+        sidebarControls.hidden = true;
+        pluginCount.hidden = true;
+        pluginList.hidden = true;
+        detailEmpty.hidden = true;
+        detailContent.hidden = true;
+        detailLoading.hidden = true;
+        marketplaceView.hidden = false;
+        marketplaceView.classList.add('view-fade-enter');
+        loadMarketplace();
+      }
+
+      // Clean up animation classes after they finish
+      setTimeout(function () {
+        [sidebarControls, pluginCount, pluginList, detailContent, detailEmpty, marketplaceView].forEach(function (el) {
+          el.classList.remove('view-fade-enter');
+        });
+      }, 250);
+    }, 150);
   }
 
   sidebarTabs.forEach(function (tab) {
@@ -925,15 +979,57 @@
     });
   });
 
+  /* Marketplace search */
+  var debouncedMarketplaceFilter = debounce(function () {
+    marketplaceSearchQuery = marketplaceSearchInput.value.trim().toLowerCase();
+    applyMarketplaceFilters();
+  }, DEBOUNCE_MS);
+
+  marketplaceSearchInput.addEventListener('input', debouncedMarketplaceFilter);
+
+  /* Marketplace filter pills */
+  marketplaceFilterPills.forEach(function (pill) {
+    pill.addEventListener('click', function () {
+      marketplaceFilterPills.forEach(function (p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+      marketplaceFilterValue = pill.dataset.filter;
+      applyMarketplaceFilters();
+    });
+  });
+
+  function applyMarketplaceFilters() {
+    var filtered = allMarketplacePlugins.filter(function (p) {
+      // Status filter
+      if (marketplaceFilterValue === 'installed' && !p.isInstalled) return false;
+      if (marketplaceFilterValue === 'available' && p.isInstalled) return false;
+      // Search filter
+      if (marketplaceSearchQuery) {
+        var name = (p.name || '').toLowerCase();
+        var desc = (p.description || '').toLowerCase();
+        if (name.indexOf(marketplaceSearchQuery) === -1 && desc.indexOf(marketplaceSearchQuery) === -1) return false;
+      }
+      return true;
+    });
+    marketplaceCountEl.textContent = filtered.length + ' of ' + allMarketplacePlugins.length;
+    renderMarketplaceGrid(filtered);
+  }
+
   async function loadMarketplace() {
+    if (allMarketplacePlugins.length > 0) {
+      // Already loaded, just re-filter
+      applyMarketplaceFilters();
+      return;
+    }
+
     marketplaceGrid.textContent = '';
     marketplaceCountEl.textContent = 'Loading...';
 
     try {
       var data = await fetchMarketplace();
-      var plugins = data.plugins || [];
-      marketplaceCountEl.textContent = plugins.length + ' available';
-      renderMarketplaceGrid(plugins);
+      allMarketplacePlugins = data.plugins || [];
+      marketplaceTotal = allMarketplacePlugins.length;
+      updateFooter();
+      applyMarketplaceFilters();
     } catch (err) {
       console.error('Failed to load marketplace:', err);
       marketplaceCountEl.textContent = 'Failed to load';
@@ -946,7 +1042,7 @@
     plugins.forEach(function (p, idx) {
       var card = document.createElement('div');
       card.className = 'marketplace-card';
-      card.style.animationDelay = (idx * 40) + 'ms';
+      card.style.animationDelay = (Math.min(idx, 20) * 30) + 'ms';
 
       var nameEl = document.createElement('div');
       nameEl.className = 'marketplace-card-name';
@@ -995,13 +1091,6 @@
       }
 
       card.appendChild(metaEl);
-
-      if (p.marketplace) {
-        var sourceEl = document.createElement('div');
-        sourceEl.className = 'marketplace-source';
-        sourceEl.textContent = p.marketplace;
-        card.appendChild(sourceEl);
-      }
 
       marketplaceGrid.appendChild(card);
     });
