@@ -78,10 +78,19 @@ This starts the HTTP server and opens the UI in a standalone window.
 ## Screenshots
 
 ### Installed View
-Plugin list with card-based detail panel, toggle switch, expandable sections.
+Plugin list with card-based detail panel, toggle switch, expandable skill cards.
 
-### Marketplace View
-Browse available plugins with search, filter pills (All/Available/Installed), and install status.
+![Installed View](screenshots/installed-view.png)
+
+### Dark Mode
+Full dark theme support — toggles via the sun/moon button in the header.
+
+![Dark Mode](screenshots/dark-mode.png)
+
+### Marketplace
+Browse 43+ available plugins with search, filter pills (All/Available/Installed), and install status.
+
+![Marketplace](screenshots/marketplace.png)
 
 ## Development
 

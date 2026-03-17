@@ -1100,6 +1100,54 @@
      Init
      ---------------------------------------- */
 
+  /* ----------------------------------------
+     Theme Toggle
+     ---------------------------------------- */
+
+  var themeToggle = document.getElementById('theme-toggle');
+  var currentTheme = localStorage.getItem('pm-theme') || 'auto';
+
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    currentTheme = theme;
+    localStorage.setItem('pm-theme', theme);
+  }
+
+  if (themeToggle) {
+    themeToggle.addEventListener('click', function () {
+      if (currentTheme === 'auto' || currentTheme === 'light') {
+        applyTheme('dark');
+        showToast('Dark mode enabled', 'info');
+      } else {
+        applyTheme('light');
+        showToast('Light mode enabled', 'info');
+      }
+    });
+    // Apply saved theme on load
+    applyTheme(currentTheme);
+  }
+
+  /* ----------------------------------------
+     Settings Button (placeholder)
+     ---------------------------------------- */
+
+  var settingsBtn = document.getElementById('settings-btn');
+  if (settingsBtn) {
+    settingsBtn.addEventListener('click', function () {
+      showToast('Settings page coming soon', 'info');
+    });
+  }
+
+  /* ----------------------------------------
+     Init
+     ---------------------------------------- */
+
   loadPlugins();
   connectSSE();
 

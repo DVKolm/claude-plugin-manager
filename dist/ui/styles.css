@@ -93,6 +93,31 @@
   }
 }
 
+/* Manual theme override via data-theme attribute */
+[data-theme="dark"] {
+  --bg: #141210; --surface: #1E1C19; --surface-hover: #262420; --surface-active: #302D28;
+  --surface-elevated: #242220; --header: #0E0D0B; --header-glow: rgba(224,139,106,0.04);
+  --text: #EDE8E1; --text-secondary: #A09889; --text-tertiary: #6B6258;
+  --border: #302D28; --border-subtle: #262420; --border-strong: #3D3830;
+  --primary: #E08B6A; --primary-hover: #D97757; --primary-light: #5C3A2A;
+  --primary-subtle: rgba(224,139,106,0.08); --primary-glow: rgba(224,139,106,0.15);
+  --success: #5CB87A; --success-glow: rgba(92,184,122,0.4); --success-light: rgba(92,184,122,0.12);
+  --danger: #E05555; --danger-light: rgba(224,85,85,0.12); --muted: #4A453E;
+  --focus-ring: rgba(224,139,106,0.4);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.2); --shadow-md: 0 2px 8px rgba(0,0,0,0.25);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.3); --shadow-glow: 0 0 20px rgba(224,139,106,0.06);
+  --card-bg: #1E1C19; --card-border: #302D28; --card-hover-border: #3D3830;
+  --card-hover-shadow: 0 4px 12px rgba(0,0,0,0.3); --code-bg: #1A1816;
+}
+
+[data-theme="light"] {
+  --bg: #F5EDE3; --surface: #FFFCF8; --surface-hover: #FAF5EE; --surface-active: #F3EBDF;
+  --surface-elevated: #FFFFFF; --header: #1B1712; --text: #1B1712; --text-secondary: #6B5D4F;
+  --text-tertiary: #A09282; --border: #E4D9CB; --border-subtle: #EDE5DA;
+  --primary: #C8613C; --primary-hover: #B5542F;
+  --card-bg: #FFFCF8; --card-border: #E4D9CB; --code-bg: #F7F0E8;
+}
+
 /* --- Reset & Base --- */
 *, *::before, *::after { box-sizing: border-box; }
 
