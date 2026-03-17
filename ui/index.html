@@ -31,6 +31,10 @@
 
   <main id="app">
     <aside id="sidebar">
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" data-view="installed">Installed</button>
+        <button class="sidebar-tab" data-view="marketplace">Marketplace</button>
+      </div>
       <div class="sidebar-controls">
         <div class="search-wrapper">
           <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
@@ -60,6 +64,13 @@
     </aside>
 
     <section id="detail" aria-label="Plugin details">
+      <div id="marketplace-view" hidden>
+        <div class="marketplace-header">
+          <h2>Marketplace</h2>
+          <span id="marketplace-count" class="marketplace-count"></span>
+        </div>
+        <div id="marketplace-grid" class="marketplace-grid"></div>
+      </div>
       <div id="detail-empty" class="empty-state">
         <div class="empty-icon" aria-hidden="true">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>

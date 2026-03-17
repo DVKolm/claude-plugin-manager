@@ -48,6 +48,7 @@
   var selectedId = null;
   var isTransitioning = false;
   var restartBannerShown = false;
+  var currentView = 'installed'; // 'installed' | 'marketplace'
 
   /* ----------------------------------------
      Utilities
@@ -82,6 +83,12 @@
   async function fetchPluginDetail(id) {
     var res = await fetch('/api/plugins/' + encodeURIComponent(id));
     if (!res.ok) throw new Error('Failed to fetch plugin detail');
+    return res.json();
+  }
+
+  async function fetchMarketplace() {
+    var res = await fetch('/api/marketplace');
+    if (!res.ok) throw new Error('Failed to fetch marketplace');
     return res.json();
   }
 
@@ -873,6 +880,131 @@
       // Reconnect after 5s
       setTimeout(connectSSE, 5000);
     };
+  }
+
+  /* ----------------------------------------
+     Marketplace View
+     ---------------------------------------- */
+
+  var marketplaceView = document.getElementById('marketplace-view');
+  var marketplaceGrid = document.getElementById('marketplace-grid');
+  var marketplaceCountEl = document.getElementById('marketplace-count');
+  var sidebarControls = document.querySelector('.sidebar-controls');
+  var sidebarTabs = document.querySelectorAll('.sidebar-tab');
+
+  function switchView(view) {
+    currentView = view;
+
+    sidebarTabs.forEach(function (tab) {
+      tab.classList.toggle('active', tab.dataset.view === view);
+    });
+
+    if (view === 'installed') {
+      sidebarControls.hidden = false;
+      pluginCount.hidden = false;
+      pluginList.hidden = false;
+      marketplaceView.hidden = true;
+      detailEmpty.hidden = !detailContent.hidden;
+      detailContent.hidden = !selectedId;
+      detailLoading.hidden = true;
+    } else {
+      sidebarControls.hidden = true;
+      pluginCount.hidden = true;
+      pluginList.hidden = true;
+      detailEmpty.hidden = true;
+      detailContent.hidden = true;
+      detailLoading.hidden = true;
+      marketplaceView.hidden = false;
+      loadMarketplace();
+    }
+  }
+
+  sidebarTabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      switchView(tab.dataset.view);
+    });
+  });
+
+  async function loadMarketplace() {
+    marketplaceGrid.textContent = '';
+    marketplaceCountEl.textContent = 'Loading...';
+
+    try {
+      var data = await fetchMarketplace();
+      var plugins = data.plugins || [];
+      marketplaceCountEl.textContent = plugins.length + ' available';
+      renderMarketplaceGrid(plugins);
+    } catch (err) {
+      console.error('Failed to load marketplace:', err);
+      marketplaceCountEl.textContent = 'Failed to load';
+    }
+  }
+
+  function renderMarketplaceGrid(plugins) {
+    marketplaceGrid.textContent = '';
+
+    plugins.forEach(function (p, idx) {
+      var card = document.createElement('div');
+      card.className = 'marketplace-card';
+      card.style.animationDelay = (idx * 40) + 'ms';
+
+      var nameEl = document.createElement('div');
+      nameEl.className = 'marketplace-card-name';
+      nameEl.textContent = p.name;
+      card.appendChild(nameEl);
+
+      if (p.description) {
+        var descEl = document.createElement('div');
+        descEl.className = 'marketplace-card-desc';
+        descEl.textContent = p.description;
+        card.appendChild(descEl);
+      }
+
+      if (p.author) {
+        var authorEl = document.createElement('div');
+        authorEl.className = 'marketplace-card-author';
+        authorEl.textContent = 'by ' + p.author;
+        card.appendChild(authorEl);
+      }
+
+      var metaEl = document.createElement('div');
+      metaEl.className = 'marketplace-card-meta';
+
+      var statusEl = document.createElement('span');
+      statusEl.className = 'marketplace-status ' + (p.isInstalled ? 'installed' : 'available');
+      var dot = document.createElement('span');
+      dot.textContent = p.isInstalled ? '\u25CF' : '\u25CB';
+      statusEl.appendChild(dot);
+      var statusText = document.createElement('span');
+      if (p.isInstalled && p.installedVersion) {
+        statusText.textContent = 'Installed v' + p.installedVersion;
+      } else if (p.isInstalled) {
+        statusText.textContent = 'Installed';
+      } else {
+        statusText.textContent = 'Available';
+      }
+      statusEl.appendChild(statusText);
+      metaEl.appendChild(statusEl);
+
+      if (p.category) {
+        var catEl = document.createElement('span');
+        var catClass = p.category.toLowerCase() === 'internal' ? 'internal' : 'external';
+        catEl.className = 'marketplace-category ' + catClass;
+        catEl.textContent = p.category;
+        metaEl.appendChild(catEl);
+      }
+
+      card.appendChild(metaEl);
+
+      if (p.marketplace) {
+        var sourceEl = document.createElement('div');
+        sourceEl.className = 'marketplace-source';
+        sourceEl.textContent = p.marketplace;
+        card.appendChild(sourceEl);
+      }
+
+      marketplaceGrid.appendChild(card);
+    });
   }
 
   /* ----------------------------------------
