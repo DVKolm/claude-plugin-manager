@@ -1,12 +1,15 @@
 import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
-import { Router, sendJson, sendError } from './router';
+import * as os from 'os';
+import { IncomingMessage } from 'http';
+import { Router, sendJson, sendError, readBody } from './router';
 import {
   generateToken, writeServerInfo, cleanupServerInfo,
   readExistingServerInfo, isProcessAlive, handleAuth
 } from './auth';
-import { scanAllPlugins, getPluginById, searchPlugins } from './plugin-scanner';
+import { scanAllPlugins, getPluginById, searchPlugins, invalidatePluginCache } from './plugin-scanner';
+import { togglePlugin, getSettings, updateSettings } from './plugin-config';
 
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 const UI_DIR = path.join(__dirname, 'ui');
@@ -50,6 +53,11 @@ function sendForbiddenPage(res: http.ServerResponse): void {
   ].join(''));
 }
 
+function requireJson(req: IncomingMessage): boolean {
+  const ct = req.headers['content-type'] || '';
+  return ct.includes('application/json');
+}
+
 function registerApiRoutes(router: Router): void {
   router.get('/api/health', (_req, res) => {
     sendJson(res, { status: 'ok', uptime: process.uptime() });
@@ -88,6 +96,96 @@ function registerApiRoutes(router: Router): void {
       return sendError(res, 404, 'Plugin not found', 'PLUGIN_NOT_FOUND');
     }
     sendJson(res, plugin);
+  });
+
+  router.post('/api/plugins/:id/toggle', async (req, res, params) => {
+    const id = params.id;
+    if (!PLUGIN_ID_REGEX.test(id)) {
+      return sendError(res, 400, 'Invalid plugin ID format', 'INVALID_ID');
+    }
+    if (!requireJson(req)) {
+      return sendError(res, 415, 'Content-Type must be application/json', 'UNSUPPORTED_MEDIA_TYPE');
+    }
+    let body: unknown;
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      return sendError(res, 400, 'Invalid JSON body', 'INVALID_JSON');
+    }
+    if (typeof body !== 'object' || body === null || typeof (body as Record<string, unknown>)['enabled'] !== 'boolean') {
+      return sendError(res, 400, 'Body must include { enabled: boolean }', 'INVALID_BODY');
+    }
+    const enabled = (body as Record<string, unknown>)['enabled'] as boolean;
+    try {
+      await togglePlugin(id, enabled);
+      sendJson(res, { success: true, pluginId: id, enabled });
+    } catch {
+      return sendError(res, 500, 'Failed to toggle plugin', 'INTERNAL_ERROR');
+    }
+  });
+
+  router.get('/api/settings', async (_req, res) => {
+    const settings = await getSettings();
+    sendJson(res, settings);
+  });
+
+  router.patch('/api/settings', async (req, res) => {
+    if (!requireJson(req)) {
+      return sendError(res, 415, 'Content-Type must be application/json', 'UNSUPPORTED_MEDIA_TYPE');
+    }
+    let body: unknown;
+    try {
+      body = JSON.parse(await readBody(req));
+    } catch {
+      return sendError(res, 400, 'Invalid JSON body', 'INVALID_JSON');
+    }
+    if (
+      typeof body !== 'object' || body === null ||
+      typeof (body as Record<string, unknown>)['path'] !== 'string'
+    ) {
+      return sendError(res, 400, 'Body must include { path: string, value: unknown }', 'INVALID_BODY');
+    }
+    const { path: settingsPath, value } = body as Record<string, unknown>;
+    try {
+      await updateSettings(settingsPath as string, value);
+      sendJson(res, { success: true });
+    } catch (err) {
+      if (err instanceof TypeError) {
+        return sendError(res, 400, (err as TypeError).message, 'VALIDATION_ERROR');
+      }
+      return sendError(res, 500, 'Failed to update settings', 'INTERNAL_ERROR');
+    }
+  });
+
+  router.get('/api/events', (req, res) => {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    });
+
+    res.write('data: {"type":"connected"}\n\n');
+
+    const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+    const localSettingsPath = path.join(os.homedir(), '.claude', 'settings.local.json');
+
+    const watchers: fs.FSWatcher[] = [];
+
+    function onFileChange(file: string) {
+      invalidatePluginCache();
+      res.write(`data: {"type":"settings-changed","file":"${file}"}\n\n`);
+    }
+
+    try {
+      watchers.push(fs.watch(settingsPath, () => onFileChange('settings.json')));
+    } catch {}
+    try {
+      watchers.push(fs.watch(localSettingsPath, () => onFileChange('settings.local.json')));
+    } catch {}
+
+    req.on('close', () => {
+      watchers.forEach(w => w.close());
+    });
   });
 }
 
